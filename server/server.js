@@ -7,6 +7,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const uploadRoute = require('./routes/upload');
+app.use('/api/upload', uploadRoute);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
