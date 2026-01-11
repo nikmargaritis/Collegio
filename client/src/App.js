@@ -6,6 +6,9 @@ export default function App() {
   const [category, setCategory] = useState('');
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [studentData, setStudentData] = useState(null); 
+  const [uploadedFileName, setUploadedFileName] = useState(''); 
+  const [collegeList, setCollegeList] = useState('');
 
   const categories = [
     { id: 'undergraduate', name: 'Undergraduate', icon: GraduationCap },
@@ -13,22 +16,57 @@ export default function App() {
     { id: 'transfer', name: 'Transfer', icon: FileSpreadsheet }
   ];
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setUploading(true);
-      setTimeout(() => {
-        setUploading(false);
-      }, 1500);
+    if (!file) return;
+    
+    setUploading(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setStudentData(data.studentData); 
+        setUploadedFileName(data.fileName); 
+        console.log('Student data:', data.studentData);
+      }
+      
+      setUploading(false);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed: ' + error.message);
+      setUploading(false);
     }
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     setProcessing(true);
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/colleges/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentData })
+      });
+      
+      const data = await response.json();
+      setCollegeList(data.collegeList);
+      console.log('College list:', data.collegeList);
+      
       setProcessing(false);
       setStep(3);
-    }, 2000);
+    } catch (error) {
+      console.error('Processing failed:', error);
+      setProcessing(false);
+    }
   };
 
   return (
@@ -130,12 +168,55 @@ export default function App() {
                     />
                   </div>
                 </label>
+
+                {/* Upload Success Display */}
+                {uploadedFileName && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <p className="font-semibold text-green-900">File Uploaded Successfully!</p>
+                    </div>
+                    <p className="text-sm text-green-700 mb-3">📄 {uploadedFileName}</p>
+                    
+                    {studentData && (
+                      <div className="bg-white rounded-lg p-4 border border-green-100">
+                        <p className="font-semibold text-gray-900 mb-3">Extracted Information:</p>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-500">GPA:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.gpa || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">SAT:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.sat || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">ACT:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.act || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Major:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.major || 'N/A'}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-gray-500">Location:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.location || 'N/A'}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-gray-500">Extracurriculars:</span>
+                            <span className="ml-2 font-medium text-gray-900">{studentData.extracurriculars || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mt-8 flex justify-end">
                 <button
                   onClick={() => setStep(2)}
-                  disabled={!category}
+                  disabled={!category || !uploadedFileName}
                   className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center space-x-2"
                 >
                   <span>Continue</span>
@@ -251,8 +332,16 @@ export default function App() {
                   <FileSpreadsheet className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Your College List is Ready!</h2>
-                <p className="text-gray-600">We've analyzed 47 universities and created your personalized spreadsheet</p>
+                <p className="text-gray-600">We've analyzed and created your personalized spreadsheet</p>
               </div>
+
+              {/* Display College List */}
+              {collegeList && (
+                <div className="bg-gray-50 rounded-xl p-6 mb-8 max-h-96 overflow-y-auto">
+                  <h3 className="font-semibold text-gray-900 mb-4">College Results:</h3>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">{collegeList}</pre>
+                </div>
+              )}
 
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-indigo-100">
                 <h3 className="font-semibold text-gray-900 mb-4">Spreadsheet Features:</h3>
@@ -297,7 +386,12 @@ export default function App() {
 
               <div className="text-center">
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setStep(1);
+                    setUploadedFileName('');
+                    setStudentData(null);
+                    setCollegeList('');
+                  }}
                   className="text-indigo-600 font-medium hover:text-indigo-700 transition-colors"
                 >
                   Create Another List

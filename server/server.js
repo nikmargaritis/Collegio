@@ -7,12 +7,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const uploadRoute = require('./routes/upload');
-app.use('/api/upload', uploadRoute);
-
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Routes
+const uploadRoute = require('./routes/upload');
+const collegesRoute = require('./routes/colleges');
+
+app.use('/api/upload', uploadRoute);
+app.use('/api/colleges', collegesRoute);
 
 // Test route
 app.get('/api/test', (req, res) => {
