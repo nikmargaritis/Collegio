@@ -19,9 +19,11 @@ app.use(express.json());
 // Routes
 const uploadRoute = require('./routes/upload');
 const collegesRoute = require('./routes/colleges');
+const exportRoute = require('./routes/export');
 
 app.use('/api/upload', uploadRoute);
 app.use('/api/colleges', collegesRoute);
+app.use('/api/export', exportRoute);
 
 // Test route
 app.get('/api/test', (req, res) => {

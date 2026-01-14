@@ -24,6 +24,7 @@ using NPOI.HSSF.UserModel;
 using NPOI.XSSF.UserModel;
 using NPOI.SS.UserModel;
 using System.Text;
+using System.Linq;
 /*
 DataTable dt = new DataTable();
 
@@ -79,7 +80,126 @@ Different encoding expectations	Row height miscalculation
 */
 public partial class Default4 : System.Web.UI.Page
 {
+        // Example button click event - trigger Excel export
+    protected async void ExportButton_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // TODO: Get student data from your form fields, session, or database
+            // This is just example data - replace with actual data source
+            var studentData = new
+            {
+                gpa = "3.8",
+                sat = "1450",
+                act = "32",
+                major = "Computer Science",
+                location = "California",
+                extracurriculars = "Robotics Club President, Math Team Captain",
+                awards = "National Merit Scholar, AP Scholar",
+                advancedCourses = "AP Calculus BC, AP Physics C, AP Computer Science A"
+            };
 
+            // Call Node.js API to get college data
+            DataTable dt = await GetCollegeDataFromAPI(studentData);
+            
+            // Export to Excel
+            ExportExcel(dt);
+        }
+        catch (Exception ex)
+        {
+            // Handle error - log or display to user
+            Response.Write($"<script>alert('Error: {ex.Message}');</script>");
+        }
+    }
+
+    /// <summary>
+    /// Calls Node.js API to get college recommendations
+    /// </summary>
+    private async Task<DataTable> GetCollegeDataFromAPI(object studentData)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            // Your Node.js server URL - adjust if different
+            string apiUrl = "http://localhost:5001/api/export/prepare";
+            
+            // Set timeout (GPT can take a while)
+            client.Timeout = TimeSpan.FromSeconds(60);
+            
+            // Serialize student data to JSON
+            string jsonData = JsonConvert.SerializeObject(new { studentData });
+            StringContent content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+            
+            // Make POST request
+            HttpResponseMessage response = await client.PostAsync(apiUrl, content);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"API Error: {responseBody}");
+            }
+            
+            // Parse response
+            JObject jsonResponse = JObject.Parse(responseBody);
+            JArray colleges = (JArray)jsonResponse["colleges"];
+            
+            // Convert to DataTable
+            return ConvertJsonToDataTable(colleges);
+        }
+    }
+
+    /// <summary>
+    /// Converts JSON array from Node.js to DataTable for Excel export
+    /// </summary>
+    private DataTable ConvertJsonToDataTable(JArray colleges)
+    {
+        DataTable dt = new DataTable();
+        
+        // Must be exactly 16 columns to match Excel export format
+        dt.Columns.Add("College");
+        dt.Columns.Add("Major");
+        dt.Columns.Add("SchoolRanking");
+        dt.Columns.Add("MajorRanking");
+        dt.Columns.Add("AvgNetCost");
+        dt.Columns.Add("Location");
+        dt.Columns.Add("AvgAcceptanceRate");
+        dt.Columns.Add("MajorAcceptanceRate");
+        dt.Columns.Add("SAT25");
+        dt.Columns.Add("SAT75");
+        dt.Columns.Add("YourSAT");
+        dt.Columns.Add("YourAcademics");
+        dt.Columns.Add("YourECL");
+        dt.Columns.Add("AvgAid");
+        dt.Columns.Add("Scholarship");
+        dt.Columns.Add("DiningRanking");
+        dt.Columns.Add("AvgLivingCost");
+        
+        // Add rows from JSON
+        foreach (JObject college in colleges)
+        {
+            DataRow row = dt.NewRow();
+            row["College"] = college["College"]?.ToString() ?? "N/A";
+            row["Major"] = college["Major"]?.ToString() ?? "N/A";
+            row["SchoolRanking"] = college["SchoolRanking"]?.ToString() ?? "N/A";
+            row["MajorRanking"] = college["MajorRanking"]?.ToString() ?? "N/A";
+            row["AvgNetCost"] = college["AvgNetCost"]?.ToString() ?? "N/A";
+            row["Location"] = college["Location"]?.ToString() ?? "N/A";
+            row["AvgAcceptanceRate"] = college["AvgAcceptanceRate"]?.ToString() ?? "N/A";
+            row["MajorAcceptanceRate"] = college["MajorAcceptanceRate"]?.ToString() ?? "N/A";
+            row["SAT25"] = college["SAT25"]?.ToString() ?? "N/A";
+            row["SAT75"] = college["SAT75"]?.ToString() ?? "N/A";
+            row["YourSAT"] = college["YourSAT"]?.ToString() ?? "N/A";
+            row["YourAcademics"] = college["YourAcademics"]?.ToString() ?? "N/A";
+            row["YourECL"] = college["YourECL"]?.ToString() ?? "N/A";
+            row["AvgAid"] = college["AvgAid"]?.ToString() ?? "N/A";
+            row["Scholarship"] = college["Scholarship"]?.ToString() ?? "N/A";
+            row["DiningRanking"] = college["DiningRanking"]?.ToString() ?? "N/A";
+            row["AvgLivingCost"] = college["AvgLivingCost"]?.ToString() ?? "N/A";
+            
+            dt.Rows.Add(row);
+        }
+        
+        return dt;
+    }
     #region NPOI Excel匯出
     private void ExportExcel(DataTable DataTableTotal)
     {
