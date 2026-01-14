@@ -26,7 +26,7 @@ export default function App() {
     formData.append('file', file);
     
     try {
-      const response = await fetch('http://localhost:5000/api/upload', {
+      const response = await fetch('http://127.0.0.1:5001/api/upload', { 
         method: 'POST',
         body: formData
       });
@@ -46,12 +46,12 @@ export default function App() {
       setUploading(false);
     }
   };
-
+  
   const handleProceed = async () => {
     setProcessing(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/colleges/generate', {
+      const response = await fetch('http://127.0.0.1:5001/api/colleges/generate', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentData })

@@ -18,5 +18,8 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "main": "index.js"
+  "main": "index.js",
+  "dependencies": {
+    "cors": "^2.8.5"
+  }
 }
